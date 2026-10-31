@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1b2a" />
+  <meta name="description" content="Minecraft Infinite — an infinite procedural voxel sandbox with every mob, block family and tool." />
+  <title>Minecraft Infinite — Sandbox</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" aria-label="Voxel world"></canvas>
+
+    <!-- vignette / underwater tint -->
+    <div id="vignette"></div>
+    <div id="underwater"></div>
+
+    <!-- ===================== HUD ===================== -->
+    <div id="hud" class="hidden">
+      <div id="debug" class="glass-panel">
+        <div class="debug-title"><span class="live-dot"></span> WORLD <span id="debug-fps">60 FPS</span></div>
+        <div id="debug-coords">0 0 0</div>
+        <div id="debug-biome">Plains</div>
+        <div id="debug-extra"></div>
+      </div>
+
+      <div id="top-right">
+        <button id="btn-bestiary-top" class="icon-btn" title="Bestiary (B)" aria-label="Bestiary">🐾</button>
+        <button id="btn-sound" class="icon-btn" title="Mute / unmute" aria-label="Mute">🔊</button>
+        <button id="btn-pause" class="icon-btn" title="Menu (Esc)" aria-label="Menu">☰</button>
+      </div>
+
+      <div id="crosshair"><i></i><i></i></div>
+      <div id="break-ring"><span></span></div>
+
+      <div id="entity-info" class="glass-panel hidden">
+        <div id="entity-name">Cow</div>
+        <div class="bar"><b id="entity-hp"></b></div>
+      </div>
+
+      <div id="status-bars" class="hidden">
+        <div id="hearts" class="icon-row"></div>
+        <div id="hunger" class="icon-row"></div>
+      </div>
+      <div id="xp-bar" class="hidden"><b></b></div>
+
+      <div id="mode-pill" class="glass-panel">
+        <span id="mode-label">CREATIVE</span>
+        <span class="divider"></span>
+        <span id="time-label">☀ Day</span>
+      </div>
+
+      <div id="hotbar"></div>
+      <div id="item-name" class="hidden"></div>
+
+      <div id="touch-ui" class="hidden">
+        <div id="joystick"><div id="joystick-knob"></div></div>
+        <div id="touch-actions">
+          <button id="t-jump" class="touch-btn" aria-label="Jump">▲</button>
+          <button id="t-break" class="touch-btn red" aria-label="Mine">⛏</button>
+          <button id="t-place" class="touch-btn green" aria-label="Place">▣</button>
+          <button id="t-up" class="touch-btn small" aria-label="Fly up">⇧</button>
+          <button id="t-down" class="touch-btn small" aria-label="Fly down">⇩</button>
+        </div>
+      </div>
+
+      <div id="toasts"></div>
+      <div id="hint" class="glass-panel hidden">Click to capture the mouse · WASD move · Space jump · E inventory · Esc menu</div>
+    </div>
+
+    <!-- ===================== INVENTORY ===================== -->
+    <div id="inventory" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Inventory">
+      <div class="inv-window">
+        <header class="inv-header">
+          <div class="inv-title"><span class="cube-logo"></span> Creative Inventory</div>
+          <div class="inv-stats"><span id="inv-count">0 items</span><span class="divider"></span><span id="inv-mode">Creative</span></div>
+          <button id="inv-close" class="close-btn" aria-label="Close inventory">✕</button>
+        </header>
+        <div class="inv-body">
+          <nav id="inv-tabs" class="inv-tabs"></nav>
+          <section class="inv-main">
+            <div class="inv-toolbar">
+              <input id="inv-search" type="search" placeholder="Search blocks, tools, mobs…" autocomplete="off" spellcheck="false" />
+              <label class="toggle"><input id="inv-all" type="checkbox" /><span>Show all</span></label>
+            </div>
+            <div id="inv-grid" class="inv-grid"></div>
+            <div id="inv-empty" class="inv-empty hidden">No items match that search.</div>
+          </section>
+          <aside class="inv-detail">
+            <div id="inv-preview" class="inv-preview"></div>
+            <h3 id="inv-name">Stone</h3>
+            <div id="inv-rarity" class="rarity">Common</div>
+            <p id="inv-desc">A sturdy building block.</p>
+            <div id="inv-meta" class="inv-meta"></div>
+            <button id="inv-give" class="mc-btn primary">Put in hotbar</button>
+            <div class="inv-hint">Click an item to pick it up · <b>Shift-click</b> to quick-give · Double-click to equip & close</div>
+          </aside>
+        </div>
+        <footer class="inv-footer">
+          <span>↑↓ Scroll the grid</span>
+          <span><b>E</b> close · <b>Q</b> drop · <b>1-9</b> slots</span>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ===================== BESTIARY ===================== -->
+    <div id="bestiary" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Bestiary">
+      <div class="bestiary-window">
+        <header class="inv-header">
+          <div class="inv-title"><span>🐾</span> Mob Bestiary</div>
+          <div class="inv-stats"><span id="mob-count">0 mobs</span><span class="divider"></span><span>Click a card to spawn</span></div>
+          <button id="bestiary-close" class="close-btn" aria-label="Close bestiary">✕</button>
+        </header>
+        <div class="bestiary-toolbar">
+          <div id="bestiary-tabs" class="chip-row"></div>
+          <input id="bestiary-search" type="search" placeholder="Search mobs…" autocomplete="off" />
+        </div>
+        <div id="bestiary-grid" class="bestiary-grid"></div>
+      </div>
+    </div>
+
+    <!-- ===================== PAUSE ===================== -->
+    <div id="pause" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Game menu">
+      <div class="pause-card">
+        <h2>Game Menu</h2>
+        <div id="pause-info" class="pause-info"></div>
+        <button id="resume" class="mc-btn primary big">Back to Game</button>
+        <button id="pause-bestiary" class="mc-btn big">🐾 Bestiary</button>
+        <button id="save-game" class="mc-btn">💾 Save World</button>
+        <button id="open-settings" class="mc-btn">⚙ Settings</button>
+        <button id="quit-menu" class="mc-btn danger">Title Screen</button>
+        <div class="pause-controls">
+          <b>WASD</b> move · <b>Space</b> jump · <b>Shift</b> sprint · <b>Double-tap Space</b> fly<br />
+          <b>Left click</b> mine / attack · <b>Right click</b> place / use · <b>E</b> inventory · <b>B</b> bestiary
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <div id="settings" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="pause-card settings-card">
+        <h2>Settings</h2>
+        <label class="setting-row">Render distance <input id="set-distance" type="range" min="2" max="8" step="1" /><output id="set-distance-out">5</output></label>
+        <label class="setting-row">Sound volume <input id="set-volume" type="range" min="0" max="1" step="0.05" /><output id="set-volume-out">60%</output></label>
+        <label class="setting-row">Day length <input id="set-day" type="range" min="2" max="30" step="1" /><output id="set-day-out">10m</output></label>
+        <label class="setting-row switch-row"><span>Fancy clouds & stars</span><input id="set-fancy" type="checkbox" checked /></label>
+        <label class="setting-row switch-row"><span>Show debug panel</span><input id="set-debug" type="checkbox" checked /></label>
+        <label class="setting-row switch-row"><span>Invert mouse</span><input id="set-invert" type="checkbox" /></label>
+        <button id="settings-close" class="mc-btn primary big">Done</button>
+      </div>
+    </div>
+
+    <!-- ===================== TITLE ===================== -->
+    <div id="title" class="overlay">
+      <div class="title-scrim"></div>
+      <div class="title-inner">
+        <div class="title-badge">A fan-made tribute · not affiliated with Mojang</div>
+        <h1 class="logo">
+          <span class="logo-main">MINECRAFT</span>
+          <span class="logo-sub">INFINITE</span>
+          <span class="splash">Now with every mob!</span>
+        </h1>
+        <p class="tagline">An endless voxel world. Every block family. Every mob. Every tool.</p>
+
+        <div class="title-stats">
+          <div><b id="stat-blocks">0</b><span>blocks</span></div>
+          <div><b id="stat-mobs">0</b><span>mobs</span></div>
+          <div><b id="stat-tools">0</b><span>tools</span></div>
+          <div><b>∞</b><span>world</span></div>
+        </div>
+
+        <div class="title-actions">
+          <button id="play" class="mc-btn primary mega">Play</button>
+          <button id="continue" class="mc-btn big hidden">Continue World</button>
+          <div class="row">
+            <button id="new-world" class="mc-btn">New World</button>
+            <button id="title-bestiary" class="mc-btn">Bestiary</button>
+            <button id="title-controls" class="mc-btn">Controls</button>
+          </div>
+          <div class="seed-row">
+            <label for="seed">Seed</label>
+            <input id="seed" type="text" placeholder="Random" maxlength="32" spellcheck="false" />
+            <button id="seed-dice" class="mc-btn tiny" title="Random seed">🎲</button>
+            <div class="mode-switch" role="group" aria-label="Game mode">
+              <button class="mode-btn active" data-mode="creative">Creative</button>
+              <button class="mode-btn" data-mode="survival">Survival</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="loading" class="loading">
+          <div class="loading-bar"><b id="loading-fill"></b></div>
+          <span id="loading-text">Carving the world…</span>
+        </div>
+
+        <div class="title-footer">
+          <span>Infinite terrain · villages · caves · day/night</span>
+          <span>Mouse + keyboard or touch</span>
+        </div>
+      </div>
+      <div class="title-tip glass-panel" id="title-tip">Tip: press <b>E</b> to open the creative inventory and place any block.</div>
+    </div>
+
+    <!-- ===================== CONTROLS MODAL ===================== -->
+    <div id="controls" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Controls">
+      <div class="pause-card controls-card">
+        <h2>How to Play</h2>
+        <div class="controls-grid">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></div>
+          <div><kbd>Mouse</kbd><span>Look around</span></div>
+          <div><kbd>Left click</kbd><span>Mine block / attack</span></div>
+          <div><kbd>Right click</kbd><span>Place / use item</span></div>
+          <div><kbd>Space</kbd><span>Jump · double-tap to fly</span></div>
+          <div><kbd>Shift</kbd><span>Sprint / fly down</span></div>
+          <div><kbd>1-9 / wheel</kbd><span>Select hotbar slot</span></div>
+          <div><kbd>E</kbd><span>Creative inventory</span></div>
+          <div><kbd>B</kbd><span>Mob bestiary</span></div>
+          <div><kbd>F</kbd><span>Toggle flight</span></div>
+          <div><kbd>Esc</kbd><span>Pause menu</span></div>
+          <div><kbd>F3</kbd><span>Toggle debug info</span></div>
+        </div>
+        <p class="controls-note">On phones and tablets, use the left joystick to move, drag the right side to look, and use the on-screen buttons to jump, mine and place.</p>
+        <button id="controls-close" class="mc-btn primary big">Got it</button>
+      </div>
+    </div>
+
+    <div id="tooltip" class="hidden"></div>
+    <div id="fatal" class="hidden"></div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
